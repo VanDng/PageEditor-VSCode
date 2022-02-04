@@ -13,6 +13,23 @@ SetWorkingDirectory = function(workingDirectory)
     console.log('Synchronization working directory set \'' + _workingDirectory + '\'');
 }
 
+/*
+Sample of pull response
+
+{
+    "fileDictionary": [
+        {
+            "path": "a/b.js",
+            "content": "aGVoZWhl"
+        },
+        {
+            "dir": "/c.css",
+            "content": "aGVoZWhl"
+        }
+    ]
+}
+*/
+
 Pull = async function()
 {
 	if (_isSynchronizing)
@@ -32,15 +49,181 @@ Pull = async function()
 	_isSynchronizing = false;
 }
 
+/*
+Sample of push file descrption
+
+{
+    action: 'actionName',
+    before:
+    {
+        dir: "dirPath",
+        name: "fileName",
+        extension: "fileExtension"
+        content: "fileContent",
+    },
+    after:
+    {
+        dir: "dirPath",
+        name: "fileName",
+        extension: "fileExtension"
+        content: "fileContent",
+    }
+}
+
+*/
+
+Push = async function(action, beforeFilePath, afterFilePath)
+{
+    let configDir = path.join(_workingDirectory, '.pageeditor');
+    let isConfigFilePush = false;
+
+    if (beforeFilePath != null)
+    {
+        if (beforeFilePath.includes(configDir))
+        {
+            isConfigFilePush = true;
+        }
+    }
+    else if (afterFilePath != null)
+    {
+        if (afterFilePath.includes(configDir))
+        {
+            isConfigFilePush = true;
+        }
+    }
+    else
+    {
+        console.log('Could not determine push type');
+    }
+
+    let pushContent = null;
+
+    if (action === 'add')
+    {
+        let fileContent = Base64Encode('');
+
+        pushContent = {
+            action: action,
+            before: null,
+            after:
+            {
+                path: afterFilePath,
+                content: fileContent
+            }
+        }
+    }
+    else if (action === 'delete')
+    {
+        pushContent = {
+            action: action,
+            before:
+            {
+                path: beforeFilePath
+            },
+            after: null
+        }
+    }
+    else if (action === 'rename')
+    {
+        pushContent = {
+            action: action,
+            before:
+            {
+                path: beforeFilePath
+            },
+            after:
+            {
+                path: beforeFilePath
+            }
+        }
+    }
+    else if (action === 'modify')
+    {
+        let fileContent = Base64Encode('');
+
+        pushContent = {
+            action: action,
+            before:  null,
+            after:
+            {
+                path: beforeFilePath,
+                content: fileContent
+            }
+        }
+    }
+    else
+    {
+        console.log('Action \'' + action + '\' is not defined');
+    }
+
+    if (isConfigFilePush)
+    {
+        PushConfigFile(pushContent);
+    }
+    else
+    {
+        PushScriptFile(pushContent);
+    }
+}
+
+async function PushScriptFile(pushContent)
+{
+    await PushFile('PushScriptFile', pushContent);
+}
+
+async function PushConfigFile(pushContent)
+{
+    await PushFile('PushConfigFile', pushContent);
+}
+
+async function PushFile(message, pushContent)
+{
+    console.log('Pushing. Action \'' + action + '\'');
+
+    let pushResult = null;
+
+    let tryCount = 0;
+	while(tryCount < 3)
+	{
+		NativeMessage.Send(message, pushContent, function(response)
+		{
+			pushResult = response;
+		});
+
+        console.log('Push request sent');
+
+        // It takes some time for the other side to prepare the response.
+        // Do not rush.
+		await Wait(5000);
+
+		if (pushResult != null)
+		{
+			break;
+		}
+		else
+		{
+            console.log('Could not reach Page Editor on Goole Chrome. Trying again...');
+			tryCount++;
+		}
+	}
+
+    if (pushResult === true)
+    {
+        console.log('Push sucess');
+    }
+
+    console.log('Push complete');
+}
+
 async function PullScriptFiles()
 {
-    await PullFiles('GetScriptFiles', _workingDirectory);
+    await PullFiles('PullScriptFiles', _workingDirectory);
 }
 
 async function PullConfigFiles()
 {
     let rootPath = path.join(_workingDirectory, '.pageeditor');
-    await PullFiles('GetConfigFiles', rootPath);
+    await PullFiles('PullConfigFiles', rootPath);
 }
 
 async function PullFiles(command, rootPath)
@@ -61,7 +244,7 @@ async function PullFiles(command, rootPath)
 
         // It takes some time for the other side to prepare the response.
         // Do not rush.
-		await Wait(2000);
+		await Wait(5000);
 
 		if (fileJson != null)
 		{
@@ -69,6 +252,7 @@ async function PullFiles(command, rootPath)
 		}
 		else
 		{
+            console.log('Could not reach Page Editor on Goole Chrome. Trying again...');
 			tryCount++;
 		}
 	}
@@ -101,7 +285,7 @@ async function ExtractFiles(fileDictionaryJson, rootPath)
         // Directory check
         //
 
-        let dirPath = path.join(rootPath, file.dir)
+        let dirPath = path.join(rootPath, path.dirname(file.path))
 
         if (fs.existsSync(dirPath) == false)
         {
@@ -114,8 +298,7 @@ async function ExtractFiles(fileDictionaryJson, rootPath)
         // File extraction
         //
 
-        let fileName = file.name + '.' + file.extension;
-        let filePath = path.join(dirPath, fileName);
+        let filePath = path.join(rootPath, file.path);
         let fileContent = Base64Decode(file.content);
 
         await fs.writeFile(filePath, fileContent, function (err) {
@@ -143,7 +326,6 @@ function Base64Decode(data)
     return text;
 }
 
-
 function Wait(time) {
     return new Promise(resolve => {
         setTimeout(() => {
@@ -154,5 +336,6 @@ function Wait(time) {
 
 module.exports = {
     SetWorkingDirectory,
-    Pull
+    Pull,
+    Push
 }

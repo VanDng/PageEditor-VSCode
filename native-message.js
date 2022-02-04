@@ -88,9 +88,11 @@ Stop = function()
 
 Send = function(message, content, responseProc)
 {
-    _socket?.volatile.emit(message, content, (response) =>
+    _socket?.timeout(3000).emit(message, content, (response) =>
     {
         responseProc(response);
+    }, (err) => {
+        console.log('Message \'' + message + '\' timeout');
     });
 }
 
