@@ -2,9 +2,11 @@ const vscode = require('vscode');
 
 let _statusBar = null;
 
-Create = function()
+Initialize = function(vsContext)
 {
     _statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
+    vsContext.subscriptions.push(_statusBar);
+
     return _statusBar;
 }
 
@@ -25,7 +27,7 @@ Hide = function()
 }
 
 module.exports = {
-    Create,
+    Initialize,
     SetMessage,
     Show,
     Hide

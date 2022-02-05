@@ -7,8 +7,7 @@ const NativeMessage = require("./native-message.js");
 let _isSynchronizing = false;
 let _workingDirectory = false;
 
-SetWorkingDirectory = function(workingDirectory)
-{
+SetWorkingDirectory = function (workingDirectory) {
     _workingDirectory = workingDirectory;
     console.log('Synchronization working directory set \'' + _workingDirectory + '\'');
 }
@@ -23,30 +22,28 @@ Sample of pull response
             "content": "aGVoZWhl"
         },
         {
-            "dir": "/c.css",
+            "path": "/c.css",
             "content": "aGVoZWhl"
         }
     ]
 }
 */
 
-Pull = async function()
-{
-	if (_isSynchronizing)
-	{
-		return;
-	}
+Pull = async function () {
+    if (_isSynchronizing) {
+        return;
+    }
 
-	_isSynchronizing = true;
+    _isSynchronizing = true;
 
     console.log('Pulling...');
 
     await PullScriptFiles();
     await PullConfigFiles();
-	
+
     console.log('Pull complete');
 
-	_isSynchronizing = false;
+    _isSynchronizing = false;
 }
 
 /*
@@ -56,221 +53,190 @@ Sample of push file descrption
     action: 'actionName',
     before:
     {
-        dir: "dirPath",
-        name: "fileName",
-        extension: "fileExtension"
-        content: "fileContent",
+        "path": "/c.css",
+        "content": "aGVoZWhl"
     },
     after:
     {
-        dir: "dirPath",
-        name: "fileName",
-        extension: "fileExtension"
-        content: "fileContent",
+        "path": "/c.css",
+        "content": "aGVoZWhl"
     }
 }
 
 */
 
-Push = async function(action, beforeFilePath, afterFilePath)
-{
-    let configDir = path.join(_workingDirectory, '.pageeditor');
+Push = async function (action, beforeFilePath, afterFilePath) {
+    console.log('Push begin');
+
     let isConfigFilePush = false;
 
-    if (beforeFilePath != null)
-    {
-        if (beforeFilePath.includes(configDir))
-        {
+    if (beforeFilePath != null) {
+        if (beforeFilePath.startsWith(path.join(path.sep, '.pageeditor'))) {
             isConfigFilePush = true;
         }
-    }
-    else if (afterFilePath != null)
-    {
-        if (afterFilePath.includes(configDir))
-        {
+    } else if (afterFilePath != null) {
+        if (afterFilePath.startsWith(path.join(path.sep, '.pageeditor'))) {
             isConfigFilePush = true;
         }
-    }
-    else
-    {
+    } else {
         console.log('Could not determine push type');
     }
 
     let pushContent = null;
 
-    if (action === 'add')
-    {
-        let fileContent = Base64Encode('');
+    if (action === 'add') {
+        let fileFullPath = path.join(_workingDirectory, afterFilePath);
+
+        let fileContent = await ReadFile(fileFullPath);
+        if (fileContent == 'undefined') {
+            console.error('File content is undefined. Cancel the action');
+            return;
+        }
 
         pushContent = {
             action: action,
             before: null,
-            after:
-            {
+            after: {
                 path: afterFilePath,
                 content: fileContent
             }
         }
-    }
-    else if (action === 'delete')
-    {
+    } else if (action === 'delete') {
         pushContent = {
             action: action,
-            before:
-            {
+            before: {
                 path: beforeFilePath
             },
             after: null
         }
-    }
-    else if (action === 'rename')
-    {
+    } else if (action === 'rename') {
         pushContent = {
             action: action,
-            before:
-            {
+            before: {
                 path: beforeFilePath
             },
-            after:
-            {
+            after: {
                 path: beforeFilePath
             }
         }
-    }
-    else if (action === 'modify')
-    {
-        let fileContent = Base64Encode('');
+    } else if (action === 'modify') {
+        let fileFullPath = path.join(_workingDirectory, beforeFilePath);
+
+        let fileContent = await ReadFile(fileFullPath);
+        if (fileContent == 'undefined') {
+            console.error('File content is undefined. Cancel the action');
+            return;
+        }
+
+        fileContent = Base64Encode(fileContent);
 
         pushContent = {
             action: action,
-            before:  null,
-            after:
-            {
+            before: null,
+            after: {
                 path: beforeFilePath,
                 content: fileContent
             }
         }
-    }
-    else
-    {
+    } else {
         console.log('Action \'' + action + '\' is not defined');
     }
 
-    if (isConfigFilePush)
-    {
+    if (isConfigFilePush) {
         PushConfigFile(pushContent);
-    }
-    else
-    {
+    } else {
         PushScriptFile(pushContent);
     }
+
+    console.log('Push end');
 }
 
-async function PushScriptFile(pushContent)
-{
+async function PushScriptFile(pushContent) {
     await PushFile('PushScriptFile', pushContent);
 }
 
-async function PushConfigFile(pushContent)
-{
+async function PushConfigFile(pushContent) {
     await PushFile('PushConfigFile', pushContent);
 }
 
-async function PushFile(message, pushContent)
-{
-    console.log('Pushing. Action \'' + action + '\'');
+async function PushFile(message, pushContent) {
+    console.log('File pushing...');
+    console.log('Push action: \'' + message + '\'');
+    console.log('Push content: ' + JSON.stringify(pushContent));
 
     let pushResult = null;
 
     let tryCount = 0;
-	while(tryCount < 3)
-	{
-		NativeMessage.Send(message, pushContent, function(response)
-		{
-			pushResult = response;
-		});
+    while (tryCount < 3) {
+        NativeMessage.Send(message, pushContent, function (response) {
+            pushResult = response;
+        });
 
         console.log('Push request sent');
 
         // It takes some time for the other side to prepare the response.
         // Do not rush.
-		await Wait(5000);
+        await Wait(5000);
 
-		if (pushResult != null)
-		{
-			break;
-		}
-		else
-		{
+        if (pushResult != null) {
+            break;
+        } else {
             console.log('Could not reach Page Editor on Goole Chrome. Trying again...');
-			tryCount++;
-		}
-	}
+            tryCount++;
+        }
+    }
 
-    if (pushResult === true)
-    {
+    if (pushResult === true) {
         console.log('Push sucess');
     }
 
-    console.log('Push complete');
+    console.log('File pushing completed');
 }
 
-async function PullScriptFiles()
-{
+async function PullScriptFiles() {
     await PullFiles('PullScriptFiles', _workingDirectory);
 }
 
-async function PullConfigFiles()
-{
+async function PullConfigFiles() {
     let rootPath = path.join(_workingDirectory, '.pageeditor');
     await PullFiles('PullConfigFiles', rootPath);
 }
 
-async function PullFiles(command, rootPath)
-{
+async function PullFiles(command, rootPath) {
     let fileJson = null;
 
     console.log('Pulling command \'' + command + '\'. Root path \'' + rootPath + '\'');
 
-	let tryCount = 0;
-	while(tryCount < 3)
-	{
-		NativeMessage.Send(command, "", function(response)
-		{
-			fileJson = response;
-		});
+    let tryCount = 0;
+    while (tryCount < 3) {
+        NativeMessage.Send(command, "", function (response) {
+            fileJson = response;
+        });
 
         console.log('Pull request sent');
 
         // It takes some time for the other side to prepare the response.
         // Do not rush.
-		await Wait(5000);
+        await Wait(5000);
 
-		if (fileJson != null)
-		{
-			break;
-		}
-		else
-		{
+        if (fileJson != null) {
+            break;
+        } else {
             console.log('Could not reach Page Editor on Goole Chrome. Trying again...');
-			tryCount++;
-		}
-	}
+            tryCount++;
+        }
+    }
 
-	if (fileJson == null)
-	{
+    if (fileJson == null) {
         console.log('Could not pull any data');
         return false;
-	}
-    else
-    {
+    } else {
         await ExtractFiles(fileJson, rootPath);
         return true;
     }
 }
 
-async function ExtractFiles(fileDictionaryJson, rootPath)
-{
+async function ExtractFiles(fileDictionaryJson, rootPath) {
     console.log('Extracting files');
 
     let obj = JSON.parse(fileDictionaryJson);
@@ -287,11 +253,12 @@ async function ExtractFiles(fileDictionaryJson, rootPath)
 
         let dirPath = path.join(rootPath, path.dirname(file.path))
 
-        if (fs.existsSync(dirPath) == false)
-        {
-            await fs.mkdir(dirPath, { recursive: true }, (err) => {
-				console.error(err);
-			});
+        if (fs.existsSync(dirPath) == false) {
+            await fs.mkdir(dirPath, {
+                recursive: true
+            }, (err) => {
+                console.error(err);
+            });
         }
 
         //
@@ -302,8 +269,7 @@ async function ExtractFiles(fileDictionaryJson, rootPath)
         let fileContent = Base64Decode(file.content);
 
         await fs.writeFile(filePath, fileContent, function (err) {
-            if (err)
-            {
+            if (err) {
                 console.error(err);
             }
         });
@@ -312,17 +278,26 @@ async function ExtractFiles(fileDictionaryJson, rootPath)
     console.log('File extraction complete');
 }
 
-function Base64Encode(data)
-{
+async function ReadFile(path) {
+    let fileContent = 'undefined';
+
+    fileContent = fs.readFileSync(path, {
+        encoding: 'utf8',
+        flag: 'r'
+    });
+
+    return fileContent;
+}
+
+function Base64Encode(data) {
     let buff = Buffer.from(data);
     let base64data = buff.toString('base64');
     return base64data;
 }
 
-function Base64Decode(data)
-{
+function Base64Decode(data) {
     let buff = Buffer.from(data, 'base64');
-    let text = buff.toString('ascii');
+    let text = buff.toString('utf8');
     return text;
 }
 
