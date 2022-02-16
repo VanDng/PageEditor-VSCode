@@ -10,7 +10,7 @@
 			"type": "extensionHost",
 			"request": "launch",
 			"args": [
-				"D:/Development/Src/PageEditor-TestWorkingDir", // Default folder opened in the development host window
+				"${workspaceFolder}/TestWorkingDirectory", // Default folder opened in the development host window
 				"--extensionDevelopmentPath=${workspaceFolder}"
 			]
 		},
