@@ -97,7 +97,7 @@ async function InitializeWorkingDirectory() {
 		MessageBox.ShowErrorMessage('Command can not be executed outside of a workspace')
 	} else if (IsSingleWorkspace() == false) {
 		MessageBox.ShowErrorMessage('Not support multiple workspace');
-	} else if (IsEmptyDirectory()) {
+	} else if (IsEmptyDirectory() == false) {
 		MessageBox.ShowErrorMessage('An empty workspace required');
 	} else {
 		MessageBox.ShowInformationMessage('Initializing...');
