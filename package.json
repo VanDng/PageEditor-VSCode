@@ -12,12 +12,12 @@
 	"activationEvents": [
 		"*"
 	],
-	"main": "./extension.js",
+	"main": "./src/_main.js",
 	"contributes": {
 		"commands": [
 			{
-				"command": "pageeditor.initializeWorkingDirectory",
-				"title": "Initialize Page Editor Working Directory"
+				"command": "pageeditor.preparePGEWorkingspace",
+				"title": "Prepare Page Editor Working Space"
 			}
 		]
 	},
@@ -38,7 +38,10 @@
 		"typescript": "^4.5.4"
 	},
 	"dependencies": {
+		"base64-js": "^1.5.1",
+		"buffer": "^6.0.3",
 		"chokidar": "^3.5.3",
+		"js-base64": "^3.7.2",
 		"simple-git": "^3.1.1",
 		"socket.io": "^4.4.1"
 	}
