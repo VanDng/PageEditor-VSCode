@@ -18,7 +18,7 @@ function IsConnected() {
     }
 }
 
-function Initilize() {
+function Open() {
     if (_server) {
         return;
     }
@@ -73,7 +73,16 @@ function Close() {
         _server?.close();
     } catch (error) {
         _log.Error(error);
+    
+    
+    
+    
     }
+
+    InvokeEventLisnter({
+        event: 'connection_state_changed',
+        content: 'disconnected'
+    });
 
     _server = null;
 }
@@ -110,7 +119,7 @@ function InvokeEventLisnter(event) {
 
 module.exports = {
     IsConnected,
-    Initilize,
+    Open,
     Close,
     Send,
     AddMessageListener,

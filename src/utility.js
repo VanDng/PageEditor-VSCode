@@ -42,7 +42,7 @@ function FunctionName(func)
 }
 
 function DirExist(dirPath) {
-    return fs.readdirSync(dirPath).length === 0;
+    return fs.readdirSync(dirPath).length !== 0;
 }
 
 function DirCreate(dirPath) {

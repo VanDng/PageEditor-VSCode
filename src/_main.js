@@ -12,15 +12,11 @@ const { StatusBar } = require('./status-bar');
 const  Log  = require('./log.js');
 const Utility = require('./utility.js');
 
-// Global variables
 const _log = new Log('PGE-Main');
 let _statusBar = null;
 let _fileSynchronizer = null;
 let _fileWatcher = null;
 
-let _isExtensionDeactivated = false;
-let _isExtensionStarted = false;
-let _isExtensionConnected = false;
 let _isPreparingPGEWorkingspace = false;
 
 function activate(context) {
@@ -40,6 +36,10 @@ function deactivate() {
 }
 
 function Initialize(context) {
+    //
+    // VS Commands
+    //
+
     let disposable = vscode.commands.registerCommand('pageeditor.preparePGEWorkingspace', PreparePGEWorkingspace);
     context.subscriptions.push(disposable);
 
@@ -48,59 +48,63 @@ function Initialize(context) {
     //
 
     _statusBar = new StatusBar(context);
+    _statusBar.SetText('Not Ready');
 
     //
     // Native message
     //
 
-    // NativeMessage.AddEventListener('connection_state_changed', function(state) {
-    //     if (state === 'Connected') {
-    //         _statusBar.SetText('Connected');
+    NativeMessage.AddEventListener('connection_state_changed', function(state) {
+        if (state === 'connected') {
+            _statusBar.SetText('Connected');
 
-    //         if (_isExtensionStarted) {
-    //             Synchronization.Pull();
-    //         }
-    //     } else {
-    //         _statusBar.SetText('Disconnected');
-    //     }
-    // });
+        } else {
+            _statusBar.SetText('Disconnected');
+        }
+    });
+
+    //
+    // File Synchronizer
+    //
+
+    //_fileSynchronizer = new FileSyn
 
     //
     // File watcher
     //
 
-    // _fileWatcher = new FileWatcher();
+    _fileWatcher = new FileWatcher(context);
 
-    // FileWatcher.Initialize(context);
+    _fileWatcher.AddEventListener('add', function(e) {
+        _log.Info(JSON.stringify(e));
+        //Synchronization.Push('add', path);
+    });
 
-    // FileWatcher.OnEvent('add', function(path) {
-    //     Synchronization.Push('add', path);
-    // });
+    _fileWatcher.AddEventListener('delete', function(e) {
+        _log.Info(JSON.stringify(e));
+        //Synchronization.Push('delete', path);
+    });
 
-    // FileWatcher.OnEvent('delete', function(path) {
-    //     Synchronization.Push('delete', path);
-    // });
+    _fileWatcher.AddEventListener('rename', function(e) {
+        _log.Info(JSON.stringify(e));
+        //Synchronization.Push('rename', path1, path2);
+    });
 
-    // FileWatcher.OnEvent('rename', function(path1, path2) {
-    //     Synchronization.Push('rename', path1, path2);
-    // });
-
-    // FileWatcher.OnEvent('modify', function(path) {
-    //     Synchronization.Push('modify', path);
-    // });
-
-    // Start checking periodically.
-    // If there's something wrong, all functions are stopped.
-
-    
+    _fileWatcher.AddEventListener('modify', function(e) {
+        _log.Info(JSON.stringify(e));
+        //Synchronization.Push('modify', path);
+    });
 }
 
 function Begin() {
-
+    _statusBar.Show();
+    _fileWatcher.Begin(GetWorkspacePath());
+    NativeMessage.Open();
 }
 
 function End() {
-    _isExtensionDeactivated = true;
+    _statusBar.Hide();
+    _fileWatcher.End();
     NativeMessage.Close();
 }
 
@@ -126,20 +130,24 @@ async function PreparePGEWorkingspace() {
 }
 
 function GetWorkspacePath() {
+    let pageEditorWorkspace = null;
+
     // Try to take the only first valid workspace.
     if (vscode.workspace.workspaceFolders !== undefined) {
-        vscode.workspace.workspaceFolders.forEach(workspaceFolder => {
+        vscode.workspace.workspaceFolders.every(workspaceFolder => {
             const fsPath = workspaceFolder.uri.fsPath;
 
             let pageEditorDir = path.join(fsPath, ".pageeditor");
-
             if (Utility.DirExist(pageEditorDir)) {
-                return pageEditorDir;
+                pageEditorWorkspace = fsPath;
+                return false; // break
             }
+
+            return true; // continue
         });
     }
 
-    return null;
+    return pageEditorWorkspace;
 }
 
 module.exports = {

@@ -1,62 +1,60 @@
 const vscode = require('vscode');
 
 class FileWatcher {
-    #_isDirty = [];
     #_eventListeners = [];
     
     #_isStopped = true;
     #_workingDirectory = null;
 
-    constructor(workingDirectory) {
-        this.#_workingDirectory = workingDirectory;
-    }
-    
-    Initialize(context) {
-        // vsContext.subscriptions.push(
-        //     vscode.workspace.onDidChangeTextDocument(function (e) {
-        //         if (!_isDirty.includes(e.document.uri.path)) {
-        //             _isDirty.push(e.document.uri.path);
-        //             EventInvoker('modify', e.document.uri.fsPath);
-        //         }
-        //     })
-        // );
-    
-        const onCreateEvent = vscode.workspace.onDidCreateFiles(function (e) {
+    constructor(context) {
+        const self = this;
+
+        const onCreateEvent = vscode.workspace.onDidCreateFiles((e) => {
             e.files.forEach((file) => {
-                this.#InvokerEventListener('add', file.fsPath);
+                self.#InvokerEventListener({
+                    event: 'add',
+                    newFile: file.fsPath
+                });
             });
         });
         context.subscriptions.push(onCreateEvent);
     
         const onSaveTextEvent = vscode.workspace.onDidSaveTextDocument(function (e) {
-            const index = this.#_isDirty.indexOf(e.uri.path);
-            if (index > -1) {
-                this.#_isDirty.splice(index, 1);
-            }
-            this.#InvokerEventListener('modify', e.uri.fsPath);
+            self.#InvokerEventListener({
+                event: 'modify',
+                oldFile: e.uri.fsPath
+            });
         });
         context.subscriptions.push(onSaveTextEvent);
     
         const onDeleteEvent = vscode.workspace.onDidDeleteFiles(function (e) {
             e.files.forEach((file) => {
-                this.#InvokerEventListener('delete', file.fsPath);
+                self.#InvokerEventListener({
+                    event: 'delete', 
+                    oldFile: file.fsPath
+                });
             });
         });
         context.subscriptions.push(onDeleteEvent);
     
         const onRenameEvent = vscode.workspace.onDidRenameFiles(function (e) {
             e.files.forEach((file) => {
-                this.#InvokerEventListener('rename', file.oldUri.fsPath, file.newUri.fsPath);
+                self.#InvokerEventListener({
+                    event: 'rename', 
+                    oldFile: file.oldUri.fsPath,
+                    newFile: file.newUri.fsPath
+                });
             });
         });
         context.subscriptions.push(onRenameEvent);
     }
     
-    Start = function () {
+    Begin = function (workingDirectory) {
         this.#_isStopped = false;
+        this.#_workingDirectory = workingDirectory;
     }
     
-    Stop = function () {
+    End = function () {
         this.#_isStopped = true;
     }
     
@@ -67,7 +65,11 @@ class FileWatcher {
         })
     }
     
-    #InvokerEventListener(event, oldFile, newFile) {
+    #InvokerEventListener(e) {
+        const event = e.event;
+        let oldFile = (e.oldFile === 'undefined') ? null : e.oldFile;
+        let newFile = (e.newFile === 'undefined') ? null : e.newFile;
+
         if (this.#_isStopped) {
             return;
 
@@ -76,6 +78,7 @@ class FileWatcher {
             (oldFile != null && oldFile.includes(this.#_workingDirectory) == false) ||
             (newFile != null && newFile.includes(this.#_workingDirectory) == false)) {
             return;
+            
         } else {
     
             if (oldFile != null) {
@@ -87,7 +90,7 @@ class FileWatcher {
             }
     
             this.#_eventListeners.forEach(async (handler) => {
-                if (handler.event === event) {
+                if (handler.event == event) {
                     handler.handler({
                         oldFile: oldFile,
                         newFile: newFile
