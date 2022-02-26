@@ -82,59 +82,42 @@ class FileSynchronizer {
         });
     }
     
-    Push(action, oldRelativeFilePath, newRelativeFilePath) {
+    Push(push) {
         
-        let pushContent = {
-            action: action
-        };
+        _log.Info('Push \'' + JSON.stringify(push) + '\'');
 
         let filePath;
         let fileContent;
         let fileContentBase64;
 
-        switch (action) {
+        switch (push.action) {
             case 'add':
-                filePath = path.join(this.#_workingDirectory, newRelativeFilePath);
+                filePath = path.join(this.#_workingDirectory, push.newFile.path);
                 fileContent = Utility.FileRead(filePath);
                 fileContentBase64 = Utility.Base64Encode(fileContent);
 
-                pushContent.newFile = {
-                    path: newRelativeFilePath,
-                    content: fileContentBase64
-                }
+                push.newFile.content = fileContentBase64;
                 break;
 
             case 'delete':
-                pushContent.oldFile = {
-                    path: oldRelativeFilePath
-                }
+                // Nothing
                 break;
 
             case 'modify':
-                filePath = path.join(this.#_workingDirectory, oldRelativeFilePath);
+                filePath = path.join(this.#_workingDirectory, push.oldFile.path);
                 fileContent = Utility.FileRead(filePath);
                 fileContentBase64 = Utility.Base64Encode(fileContent);
 
-                pushContent.oldFile = {
-                    path: oldRelativeFilePath,
-                    content: fileContentBase64
-                }
+                push.oldFile.content = fileContentBase64;
                 break;
 
             case 'rename':
-                pushContent.oldFile = {
-                    path: oldRelativeFilePath
-                }
-
-                pushContent.newFile = {
-                    path: newRelativeFilePath
-                }
+                // Nothing
                 break;
         }
 
-        _log.Info('Push content \'' + JSON.stringify(pushContent) + '\'');
-
-        this.#PushFile(pushContent).then((result) => {
+        
+        this.#PushFile(push).then((result) => {
 
             _log.Info('Push result \'' + result +'\'');
 

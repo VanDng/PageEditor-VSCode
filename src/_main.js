@@ -76,23 +76,42 @@ function Initialize(context) {
     _fileWatcher = new FileWatcher(context);
 
     _fileWatcher.AddEventListener('add', function(e) {
-        _log.Info(JSON.stringify(e));
-        //Synchronization.Push('add', path);
+        _fileSynchronizer.Push({
+            action: 'add',
+            newFile: {
+                path: e.newFile
+            } 
+        });
     });
 
     _fileWatcher.AddEventListener('delete', function(e) {
-        _log.Info(JSON.stringify(e));
-        //Synchronization.Push('delete', path);
+        _fileSynchronizer.Push({
+            action: 'delete',
+            oldFile: {
+                path: e.oldFile
+            }
+        });
     });
 
     _fileWatcher.AddEventListener('rename', function(e) {
-        _log.Info(JSON.stringify(e));
-        //Synchronization.Push('rename', path1, path2);
+        _fileSynchronizer.Push({
+            action: 'rename',
+            oldFile: {
+                path: e.oldFile
+            },
+            newFile: {
+                path: e.newFile
+            }
+        });
     });
 
     _fileWatcher.AddEventListener('modify', function(e) {
-        _log.Info(JSON.stringify(e));
-        //Synchronization.Push('modify', path);
+        _fileSynchronizer.Push({
+            action: 'modify',
+            oldFile: {
+                path: e.oldFile
+            }
+        });
     });
 }
 
