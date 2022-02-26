@@ -49,10 +49,22 @@ function DirCreate(dirPath) {
     fs.mkdirSync(dirPath, { recursive: true });
 }
 
+function FileWrite(filePath, fileContent) {
+    fs.writeFileSync(filePath, fileContent);
+}
+
+function FileRead(filePath) {
+    return fs.readFileSync(filePath, {
+        encoding: 'utf8',
+        flag: 'r'
+    });
+}
 module.exports = {
     Base64Decode,
     Base64Encode,
     FunctionName,
     DirExist,
-    DirCreate
+    DirCreate,
+    FileWrite,
+    FileRead
 }

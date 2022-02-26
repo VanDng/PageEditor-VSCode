@@ -6,7 +6,7 @@ const Timers = require('timers');
 
 const MessageBox = require('./message-box.js');
 const NativeMessage = require("./native-message.js");
-//const FileSynchronizer = require('./file-synchronizer');
+const FileSynchronizer = require('./file-synchronizer');
 const FileWatcher = require('./file-watcher.js');
 const { StatusBar } = require('./status-bar');
 const  Log  = require('./log.js');
@@ -67,7 +67,7 @@ function Initialize(context) {
     // File Synchronizer
     //
 
-    //_fileSynchronizer = new FileSyn
+    _fileSynchronizer = new FileSynchronizer();
 
     //
     // File watcher
@@ -97,15 +97,19 @@ function Initialize(context) {
 }
 
 function Begin() {
+    let workspacePath = GetWorkspacePath();
+
     _statusBar.Show();
-    _fileWatcher.Begin(GetWorkspacePath());
     NativeMessage.Open();
+    _fileWatcher.Begin(workspacePath);
+    _fileSynchronizer.Begin(workspacePath);
 }
 
 function End() {
     _statusBar.Hide();
-    _fileWatcher.End();
     NativeMessage.Close();
+    _fileWatcher.End();
+    _fileSynchronizer.End();
 }
 
 async function PreparePGEWorkingspace() {

@@ -10,6 +10,8 @@ let _socket = null;
 let _eventListeners = [];
 let _messageEventListeners = [];
 
+let _disconnectStateTimer = null;
+
 function IsConnected() {
     if (_socket == null) {
         return false;
@@ -36,18 +38,12 @@ function Open() {
             } else {
                 _socket = socket;
 
-                InvokeEventLisnter({
-                    event: 'connection_state_changed',
-                    content: 'connected'
-                });
+                InvokeConnectionStateEvent('connected');
 
                 _socket.on("disconnect", (reason) => {
                     _socket = null;
                    
-                    InvokeEventLisnter({
-                        event: 'connection_state_changed',
-                        content: 'disconnected'
-                    });
+                    InvokeConnectionStateEvent('disconnected');
                 });
 
                 _messageEventListeners?.forEach(async (handler) => {
@@ -79,10 +75,7 @@ function Close() {
     
     }
 
-    InvokeEventLisnter({
-        event: 'connection_state_changed',
-        content: 'disconnected'
-    });
+    InvokeConnectionStateEvent('disconnected', true);
 
     _server = null;
 }
@@ -115,6 +108,35 @@ function InvokeEventLisnter(event) {
             handler.handler(event.content);
         }
     });
+}
+
+// Connection state is a special event though, it has a special invoking condition.
+function InvokeConnectionStateEvent(connectionState, immediate = false) {
+    if (connectionState === 'connected') {
+        if (_disconnectStateTimer != null) {
+            clearInterval(_disconnectStateTimer);
+            _disconnectStateTimer = null;
+        }
+
+        InvokeEventLisnter({
+            event: 'connection_state_changed',
+            content: connectionState
+        });
+    } else {
+        if (immediate) {
+            InvokeEventLisnter({
+                event: 'connection_state_changed',
+                content: connectionState
+            });
+        } else {
+            _disconnectStateTimer = setInterval(() => {
+                InvokeEventLisnter({
+                    event: 'connection_state_changed',
+                    content: connectionState
+                });
+            }, 3000);
+        }
+    }
 }
 
 module.exports = {
