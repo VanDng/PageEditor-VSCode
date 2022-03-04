@@ -1,4 +1,5 @@
 const fs = require("fs");
+const glob = require('glob');
 
 /*
 Base64 Encoding is really tricky.
@@ -71,6 +72,33 @@ function FileRead(filePath) {
         flag: 'r'
     });
 }
+
+function IsDirectory(path) {
+    return fs.existsSync(path) && fs.lstatSync(path).isDirectory();
+}
+
+function FileAll(path) {
+    return new Promise((resolve, reject) =>{
+        glob(path + '/**/*', (error, files) => {
+            if (error) {
+                reject(error);
+            } else {
+                // There are some libraries using backslash '\' as path separator
+                // Glob uses forwardslash '/' as path separator.
+
+                // Transform Glob's output.
+                let standardizedFiles = [];
+
+                files.forEach(file => {
+                    standardizedFiles.push(file.replace(/\//g, '\\'));
+                });
+                
+                resolve(standardizedFiles);
+            }
+        });
+    });
+}
+
 module.exports = {
     Base64Decode,
     Base64Encode,
@@ -78,5 +106,7 @@ module.exports = {
     DirExist,
     DirCreate,
     FileWrite,
-    FileRead
+    FileRead,
+    IsDirectory,
+    FileAll
 }

@@ -1,4 +1,5 @@
 const vscode = require('vscode');
+const Utility = require('./utility.js');
 
 class FileWatcher {
     #_eventListeners = [];
@@ -81,22 +82,88 @@ class FileWatcher {
             
         } else {
     
-            if (oldFile != null) {
-                oldFile = oldFile.replace(this.#_workingDirectory, '');
-            }
-    
-            if (newFile != null) {
-                newFile = newFile.replace(this.#_workingDirectory, '');
-            }
-    
-            this.#_eventListeners.forEach(async (handler) => {
-                if (handler.event == event) {
-                    handler.handler({
-                        oldFile: oldFile,
-                        newFile: newFile
-                    })
+            // Directory change
+            if (oldFile != null && Utility.IsDirectory(oldFile) ||
+                newFile != null && Utility.IsDirectory(newFile)) {
+                
+                // Just to make it easier to understand
+                let oldFolder = oldFile;
+                let newFolder = newFile;
+
+                if (event === 'rename' || event === "delete") {
+
+                    if (event === 'rename') {
+                        Utility.FileAll(newFolder).then(files => {
+                            files.forEach(file => {
+                                
+                                let _oldFile = file.replace(newFolder, oldFolder);
+                                let _newFile = file;
+
+                                this.#InvokerEventListener({
+                                    event: 'rename',
+                                    oldFile: _oldFile,
+                                    newFile: _newFile
+                                })
+
+                            });
+                        });
+
+                    } else if (event === 'delete') {
+
+                        //
+                        // IT DOES NOT WORK AS EXPECTED !
+                        //
+                        // REASON:
+                        //   When I delete a folder containing files, 
+                        //   scode.workspace.onDidDeleteFiles does not fire a DELETE event on files
+                        //   but fire one event on the folder. It's fine.
+                        //   However, the event does not indicate whether it's a folder or a file!
+                        //
+                        // So far, do not delete a folder!
+                        //
+
+                        Utility.FileAll(oldFolder).then(files => {
+                            files.forEach(file => {
+                                
+                                let _oldFile = file.replace(newFolder, oldFolder);
+                                let _newFile = file;
+
+                                // this.#InvokerEventListener({
+                                //     event: 'delete',
+                                //     oldFile: _oldFile,
+                                //     newFile: _newFile
+                                // })
+
+                            });
+                        });
+                    } 
+
+                } else {
+                    // Add, Modify
+                    // Do nothing
                 }
-            });
+
+            } 
+            
+            // File change
+            else {
+                if (oldFile != null) {
+                    oldFile = oldFile.replace(this.#_workingDirectory, '');
+                }
+        
+                if (newFile != null) {
+                    newFile = newFile.replace(this.#_workingDirectory, '');
+                }
+        
+                this.#_eventListeners.forEach(async (handler) => {
+                    if (handler.event == event) {
+                        handler.handler({
+                            oldFile: oldFile,
+                            newFile: newFile
+                        })
+                    }
+                });
+            }
         }
     }
 }
