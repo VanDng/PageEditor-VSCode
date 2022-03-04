@@ -40,8 +40,13 @@ function Initialize(context) {
     // VS Commands
     //
 
-    let disposable = vscode.commands.registerCommand('pageeditor.preparePGEWorkingspace', PreparePGEWorkingspace);
-    context.subscriptions.push(disposable);
+    context.subscriptions.push(
+        vscode.commands.registerCommand('pageeditor.preparePGEWorkingspace', PreparePGEWorkingspace)
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('pageeditor.synchronizeAllFiles', SynchronizeAllFiles)
+    );
 
     //
     // Status bar
@@ -171,6 +176,10 @@ function GetWorkspacePath() {
     }
 
     return pageEditorWorkspace;
+}
+
+async function SynchronizeAllFiles() {
+    _fileSynchronizer.Synchronize();
 }
 
 module.exports = {

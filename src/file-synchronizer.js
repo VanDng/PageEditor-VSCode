@@ -135,6 +135,38 @@ class FileSynchronizer {
 
         });
     }
+
+    // I'm tired. Just put it here.
+    // It means to clean the Chrome's storage and replace it with these new files.
+    Synchronize() {
+
+        _log.Info('Synchronizing...');
+
+
+        Utility.FileAll(this.#_workingDirectory).then(files => {
+            let newFiles = [];
+
+            files.forEach(file => {
+                if (!files.includes('.pageeditor') && !Utility.IsDirectory(file)) { // Exclude configuration files
+                    let _path = file.replace(this.#_workingDirectory, '');
+                    let _content = Utility.Base64Encode(Utility.FileRead(file));
+
+                    newFiles.push({
+                        path: _path,
+                        content: _content
+                    });
+                }
+            });
+
+            return Promise.resolve(newFiles);
+        }).then(files => {
+            NativeMessage.Send('SynchronizeFile', files).then((result) => {
+
+                _log.Info('Synchronization result \'' + result +'\'');
+    
+            });
+        });
+    }
 }
 
 module.exports = FileSynchronizer

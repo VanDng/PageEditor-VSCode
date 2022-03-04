@@ -18,6 +18,10 @@
 			{
 				"command": "pageeditor.preparePGEWorkingspace",
 				"title": "Prepare Page Editor Working Space"
+			},
+			{
+				"command": "pageeditor.synchronizeAllFiles",
+				"title": "Synchronize all files"
 			}
 		]
 	},
