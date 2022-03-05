@@ -7,6 +7,7 @@
 		"type": "git",
 		"url": "https://github.com/VanDng/PageEditor-VSCode"
 	},
+	"publisher": "Dustin",
 	"author": {
 		"name": "Dustin"
 	},
@@ -49,6 +50,7 @@
 	},
 	"dependencies": {
 		"chokidar": "^3.5.3",
-		"glob": "^7.2.0"
+		"glob": "^7.2.0",
+		"socket.io": "^4.4.1"
 	}
 }
