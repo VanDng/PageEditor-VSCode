@@ -3,6 +3,7 @@
 	"displayName": "PageEditor",
 	"description": "An external editor of the Page Editor extension on the browser Google Chrome.",
 	"version": "0.0.1",
+	"repository": "https://github.com/VanDng/PageEditor-VSCode",
 	"engines": {
 		"vscode": "^1.63.0"
 	},
@@ -10,7 +11,7 @@
 		"Other"
 	],
 	"activationEvents": [
-		"*"
+		"workspaceContains:.pageeditor"
 	],
 	"main": "./src/_main.js",
 	"contributes": {
