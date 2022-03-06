@@ -1,11 +1,13 @@
 # PageEditor-VSCode
 
-An external editor for the [Page Editor](https://github.com/VanDng/Page-Editor) extension.
+A Visual Studio Code extension that works as an external editor for the [Page Editor](https://github.com/VanDng/Page-Editor).
 
 # Todo
-- [ ] Follow this [topic](https://github.com/microsoft/vscode/issues/4873). The crowd is waiting for an API enabling to disable VSCode Editor.
+- [ ] Follow this [topic](https://github.com/microsoft/vscode/issues/4873). The crowd is waiting for an API enabling to disable VSCode Editor on read-only mode.
 
 # Package
+
+A note for myself for packaging the extension.
 
 1/ Make sure the necessary libraries belongs to the `dependencies` section, not `devDependencies`. Otherwise, the extension won't work after installing.
 
